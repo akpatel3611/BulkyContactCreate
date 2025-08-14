@@ -1,0 +1,95 @@
+<template>
+    <lightning-card title="Multi Contact Creator" icon-name="standard:contact">
+        
+        <!-- Repeat a simple contact form for each item in contactList -->
+        <template for:each={contactList} for:item="contact" for:index="index">
+            <div key={contact.Id} class="slds-m-bottom_medium slds-p-around_small slds-box slds-theme_default">
+
+                <div class="slds-grid slds-gutters slds-wrap">
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            label="First Name"
+                            name="FirstName"
+                            data-index={index}
+                            value={contact.FirstName}
+                            onchange={handleInputChange}>
+                        </lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            label="Last Name"
+                            name="LastName"
+                            data-index={index}
+                            value={contact.LastName}
+                            required
+                            onchange={handleInputChange}>
+                        </lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            type="email"
+                            label="Email"
+                            name="Email"
+                            data-index={index}
+                            value={contact.Email}
+                            onchange={handleInputChange}>
+                        </lightning-input>
+                    </div>
+
+                    <div class="slds-col slds-size_1-of-2">
+                        <lightning-input
+                            type="tel"
+                            label="Phone"
+                            name="Phone"
+                            data-index={index}
+                            value={contact.Phone}
+                            onchange={handleInputChange}>
+                        </lightning-input>
+                    </div>
+                </div>
+
+                <div class="slds-m-top_small slds-align_absolute-center">
+                    <lightning-button
+                        variant="destructive-text"
+                        label="Remove"
+                        title="Remove this contact"
+                        data-index={index}
+                        onclick={removeContactForm}>
+                    </lightning-button>
+                </div>
+            </div>
+        </template>
+
+        <!-- Action buttons -->
+        <div class="slds-m-top_small slds-grid slds-gutters">
+            <div class="slds-col">
+                <lightning-button
+                    label="Add Another Contact"
+                    onclick={addContactForm}>
+                </lightning-button>
+            </div>
+
+            <div class="slds-col">
+                <lightning-button
+                    variant="brand"
+                    label="Save All"
+                    onclick={saveContactsHandler}>
+                </lightning-button>
+            </div>
+        </div>
+
+        <!-- Show created contacts in a table after save -->
+        <template if:true={hasCreatedContacts}>
+            <div class="slds-m-top_large">
+                <lightning-datatable
+                    key-field="Id"
+                    data={createdContacts}
+                    columns={columns}>
+                </lightning-datatable>
+            </div>
+        </template>
+
+    </lightning-card>
+</template>
