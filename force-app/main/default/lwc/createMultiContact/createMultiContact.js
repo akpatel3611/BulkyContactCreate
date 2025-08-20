@@ -1,8 +1,10 @@
 import { LightningElement, track } from 'lwc';
 import saveContacts from '@salesforce/apex/ContactController.saveContacts';
+import getContacts from '@salesforce/apex/ContactController.getContacts';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
+import { NavigationMixin } from 'lightning/navigation';
 
-export default class CreateMultiContact extends LightningElement {
+export default class CreateMultiContact extends NavigationMixin(LightningElement) {
 
     // Shuru me ek khali contact form rakha
     @track contactList = [
@@ -10,13 +12,12 @@ export default class CreateMultiContact extends LightningElement {
     ];
 
     @track createdContacts = [];
-
     // DataTable ke liye columns ka list
     columns = [
-        { label: 'First Name', fieldName: 'FirstName' },
-        { label: 'Last Name', fieldName: 'LastName' },
-        { label: 'Email', fieldName: 'Email', type: 'email' },
-        { label: 'Phone', fieldName: 'Phone', type: 'phone' }
+        { label: 'First Name', fieldName: 'FirstName', type: 'text',length: 15},
+        { label: 'Last Name', fieldName: 'LastName', type: 'text', length: 15},
+        { label: 'Email', fieldName: 'Email', type: 'Email'},
+        { label: 'Phone', fieldName: 'Phone', type: 'Phone',length: 10}
     ];
 
     // Agar createdContacts me koi data hai to true return karega
@@ -88,5 +89,28 @@ export default class CreateMultiContact extends LightningElement {
                     })
                 );
             });
+        
+        getContacts({ contactsToUpdate: this.createdContacts})
+            .then(() => {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Success',
+                        message: 'Contacts updated successfully.',
+                        variant: 'success'
+                    })
+                );
+            }
+            )
+            .catch(error => {
+                this.dispatchEvent(
+                    new ShowToastEvent({
+                        title: 'Error updating contacts',
+                        message: error.body ? error.body.message : 'Unknown error',
+                        variant: 'error'
+                    })
+                );
+            }
+        );
+
     }
 }
