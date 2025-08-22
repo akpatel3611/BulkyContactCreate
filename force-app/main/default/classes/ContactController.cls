@@ -1,28 +1,25 @@
 public with sharing class ContactController {
-    @AuraEnabled(cacheable=true)
+
+    @AuraEnabled
     public static List<Contact> saveContacts(List<Contact> contactsToInsert) {
         if (contactsToInsert == null || contactsToInsert.isEmpty()) {
-            throw new AuraHandledException('No contacts to insert');
+            return new List<Contact>();
         }
-        
-        insert contactsToInsert;
+
+        // Insert or Update contacts
+        upsert contactsToInsert;
+
+        // Return fresh records from DB
+        Set<Id> ids = new Set<Id>();
+        for (Contact c : contactsToInsert) {
+            if (c.Id != null) ids.add(c.Id);
+        }
+
         return [
             SELECT Id, FirstName, LastName, Email, Phone 
             FROM Contact 
-            WHERE Id IN :contactsToInsert
+            WHERE Id IN :ids
+            ORDER BY CreatedDate DESC
         ];
     }
-   @AuraEnabled (cacheable=true)
-    public static List<Contact> getContacts(List<Contact> contactsToUpdate) {
-        if (contactsToUpdate == null || contactsToUpdate.isEmpty()) {
-            throw new AuraHandledException('No contacts to update');
-        }
-        // Assuming you want to return the contacts that were passed in
-        return [
-            SELECT Id, FirstName, LastName, Email, Phone 
-            FROM Contact 
-            WHERE Id IN :contactsToUpdate
-        ];
-    }
-    
 }

@@ -1,116 +1,109 @@
 import { LightningElement, track } from 'lwc';
 import saveContacts from '@salesforce/apex/ContactController.saveContacts';
-import getContacts from '@salesforce/apex/ContactController.getContacts';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 
 export default class CreateMultiContact extends NavigationMixin(LightningElement) {
-
-    // Shuru me ek khali contact form rakha
-    @track contactList = [
-        { FirstName: '', LastName: '', Email: '', Phone: '' }
-    ];
-
+    @track contactList = [{ FirstName: '', LastName: '', Email: '', Phone: '' }];
     @track createdContacts = [];
-    // DataTable ke liye columns ka list
+    @track draftContacts = [];
+    @track isEditMode = false;
+
+    // Table columns
     columns = [
-        { label: 'First Name', fieldName: 'FirstName', type: 'text',length: 15},
-        { label: 'Last Name', fieldName: 'LastName', type: 'text', length: 15},
-        { label: 'Email', fieldName: 'Email', type: 'Email'},
-        { label: 'Phone', fieldName: 'Phone', type: 'Phone',length: 10}
+        { label: 'Name', fieldName: 'recordLink', type: 'url', 
+          typeAttributes: { label: { fieldName: 'Name' }, target: '_blank' } },
+        { label: 'Email', fieldName: 'Email', type: 'email' },
+        { label: 'Phone', fieldName: 'Phone', type: 'phone' }
     ];
 
-    // Agar createdContacts me koi data hai to true return karega
-    get hasCreatedContacts() {
-        return this.createdContacts.length > 0;
-    }
+    // Add new contact form
+    createEmptyContact() {
+    return {
+        FirstName: '',
+        LastName: '',
+        Email: '',
+        Phone: ''
+    };
+}
+addContactForm() {
+    this.contactList = [...this.contactList, this.createEmptyContact()];
+}
 
-    // Naya contact form add kare
-    addContactForm() {
-        let newContact = { FirstName: '', LastName: '', Email: '', Phone: '' };
-        this.contactList.push(newContact);
-    }
 
-    // Contact form remove kare
     removeContactForm(event) {
         let index = event.currentTarget.dataset.index;
-        this.contactList.splice(index, 1);
+        this.contactList.filter((_, i) => i !== index);
     }
 
-    // Input box ka value update kare
     handleInputChange(event) {
-        let index = event.target.dataset.index;   // kaun sa form
-        let field = event.target.name;            // kaun sa field (FirstName, Email, etc.)
-        let value = event.target.value;           // value jo user ne type ki
-
-        this.contactList[index][field] = value;   // update field
+        let index = event.target.dataset.index;
+        let field = event.target.name; 
+        this.contactList[index][field] = event.target.value;
     }
 
-    // Save button par click hone par
+    // Save new contacts
     saveContactsHandler() {
-        // Sare input fields valid hai ya nahi check karna
         let allValid = true;
         this.template.querySelectorAll('lightning-input').forEach(input => {
             if (!input.reportValidity()) {
                 allValid = false;
             }
         });
+        if (!allValid) return;
 
-        // Agar valid nahi to yahi stop
-        if (!allValid) {
-            return;
-        }
-
-        // Apex ko call karke data save karna
         saveContacts({ contactsToInsert: this.contactList })
             .then(result => {
-                // Result ko store karna
-                this.createdContacts = result;
+                this.createdContacts = result.map(rec => ({
+                    ...rec,
+                    recordLink: '/' + rec.Id,
+                    Name: rec.FirstName + ' ' + rec.LastName
+                }));
 
-                // Success message dikhana
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Success',
-                        message: result.length + ' contact(s) created successfully.',
-                        variant: 'success'
-                    })
-                );
-
-                // Form reset karna
+                this.showToast('Success', result.length + ' contact(s) created successfully.', 'success');
                 this.contactList = [{ FirstName: '', LastName: '', Email: '', Phone: '' }];
             })
-            .catch(error => {
-                // Error message dikhana
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error creating contacts',
-                        message: error.body ? error.body.message : 'Unknown error',
-                        variant: 'error'
-                    })
-                );
-            });
-        
-        getContacts({ contactsToUpdate: this.createdContacts})
-            .then(() => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Success',
-                        message: 'Contacts updated successfully.',
-                        variant: 'success'
-                    })
-                );
-            }
-            )
-            .catch(error => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Error updating contacts',
-                        message: error.body ? error.body.message : 'Unknown error',
-                        variant: 'error'
-                    })
-                );
-            }
-        );
+            .catch(error => this.showToast('Error', error.body ? error.body.message : 'Unknown error', 'error'));
+    }
 
+    // ------------------------------
+    // EDIT MODE HANDLING
+    // ------------------------------
+    enableEditMode() {
+        this.isEditMode = true;
+        this.draftContacts = JSON.parse(JSON.stringify(this.createdContacts));
+    }
+
+    handleDraftChange(event) {
+        let index = event.target.dataset.index;
+        let field = event.target.name;
+        this.draftContacts[index][field] = event.target.value;
+    }
+
+    saveEdits() {
+        saveContacts({ contactsToInsert: this.draftContacts })
+            .then(result => {
+                this.createdContacts = result.map(rec => ({
+                    ...rec,
+                    recordLink: '/' + rec.Id,
+                    Name: rec.FirstName + ' ' + rec.LastName
+                }));
+
+                this.showToast('Success', 'Contacts updated successfully.', 'success');
+                this.isEditMode = false;
+                this.draftContacts = [];
+            })
+            .catch(error => this.showToast('Error', error.body ? error.body.message : 'Unknown error', 'error'));
+    }
+
+    cancelEdits() {
+        this.isEditMode = false;
+        this.draftContacts = [];
+        this.showToast('Info', 'Changes discarded.', 'info');
+    }
+
+    // Helper
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
     }
 }
