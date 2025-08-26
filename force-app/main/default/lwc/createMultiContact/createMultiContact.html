@@ -1,178 +1,112 @@
 <template>
   <lightning-card title="Multi Contact Creator" icon-name="standard:contact">
-    <!-- Repeat a simple contact form for each item in contactList (Before Save) -->
-    <template for:each={contactList} for:item="contact" for:index="index">
-      <div class="slds-m-bottom_medium slds-p-around_small slds-box slds-theme_default" key={contact.Id}>
-        <div class="slds-grid slds-gutters slds-wrap">
-          <div class="slds-col slds-size_1-of-2">
-            <lightning-input
-              type="text"
-              label="First Name"
-              name="FirstName"
-              data-index={index}
-              value={contact.FirstName}
-              required
-              onchange={handleInputChange}
-            ></lightning-input>
-          </div>
+    <!-- Spinner -->
+    <template if:true={isLoading}>
+      <lightning-spinner alternative-text="Loading" size="medium"></lightning-spinner>
+    </template>
 
-          <div class="slds-col slds-size_1-of-2">
-            <lightning-input
-              type="text"
-              label="Last Name"
-              name="LastName"
-              data-index={index}
-              value={contact.LastName}
-              required
-              onchange={handleInputChange}
-            ></lightning-input>
+    <!-- Contact creation form (hide when table is shown) -->
+    <template if:false={showTable}>
+      <template for:each={contactList} for:item="contact" for:index="index">
+        <div class="slds-m-bottom_medium slds-p-around_small slds-box slds-theme_default" key={contact.Id}>
+          <div class="slds-grid slds-gutters slds-wrap">
+            <div class="slds-col slds-size_1-of-2">
+              <lightning-input
+                type="text"
+                label="First Name"
+                name="FirstName"
+                data-index={index}
+                value={contact.FirstName}
+                required
+                onchange={handleInputChange}
+              ></lightning-input>
+            </div>
+            <div class="slds-col slds-size_1-of-2">
+              <lightning-input
+                type="text"
+                label="Last Name"
+                name="LastName"
+                data-index={index}
+                value={contact.LastName}
+                required
+                onchange={handleInputChange}
+              ></lightning-input>
+            </div>
+            <div class="slds-col slds-size_1-of-2">
+              <lightning-input
+                type="email"
+                label="Email"
+                name="Email"
+                data-index={index}
+                value={contact.Email}
+                required
+                onchange={handleInputChange}
+              ></lightning-input>
+            </div>
+            <div class="slds-col slds-size_1-of-2">
+              <lightning-input
+                type="phone"
+                label="Phone"
+                name="Phone"
+                maxlength="10"
+                data-index={index}
+                value={contact.Phone}
+                required
+                onchange={handleInputChange}
+              ></lightning-input>
+            </div>
           </div>
-
-          <div class="slds-col slds-size_1-of-2">
-            <lightning-input
-              type="email"
-              label="Email"
-              name="Email"
+          <div class="slds-m-top_small slds-align_absolute-center">
+            <lightning-icon
+              icon-name="action:delete"
+              alternative-text="Delete"
+              title="Delete"
               data-index={index}
-              value={contact.Email}
-              required
-              onchange={handleInputChange}
-            ></lightning-input>
-          </div>
-
-          <div class="slds-col slds-size_1-of-2">
-            <lightning-input
-              type="phone"
-              label="Phone"
-              name="Phone"
-              maxlength="10"
+              onclick={removeContactForm}
+              class="slds-m-left_x-small"
+            ></lightning-icon>
+            <lightning-icon
+              icon-name="utility:copy"
+              alternative-text="Clone"
+              title="Clone"
               data-index={index}
-              value={contact.Phone}
-              required
-              onchange={handleInputChange}
-            ></lightning-input>
+              onclick={cloneContactForm}
+              class="slds-m-left_x-small"
+              size="large"
+            ></lightning-icon>
           </div>
         </div>
-
-        <div class="slds-m-top_small slds-align_absolute-center">
+      </template>
+      <!-- Action buttons for form -->
+      <div class="slds-m-top_small slds-grid slds-gutters">
+        <div class="slds-col">
           <lightning-button
-            variant="destructive-text"
-            label="Remove"
-            data-index={index}
-            onclick={removeContactForm}
+            label="Add Another Contact"
+            onclick={addContactForm}
+          ></lightning-button>
+        </div>
+        <div class="slds-col">
+          <lightning-button
+            variant="brand"
+            label="Save All"
+            onclick={saveContactsHandler}
           ></lightning-button>
         </div>
       </div>
     </template>
 
-    <!-- Action buttons -->
-    <div class="slds-m-top_small slds-grid slds-gutters">
-      <div class="slds-col">
-        <lightning-button
-          label="Add Another Contact"
-          onclick={addContactForm}
-        ></lightning-button>
-      </div>
-
-      <div class="slds-col">
-        <lightning-button
-          variant="brand"
-          label="Save All"
-          onclick={saveContactsHandler}
-        ></lightning-button>
-      </div>
-    </div>
-
-    <!-- Show created contacts in a table after save -->
-    <template if:true={createdContacts}>
+    <!-- Inline editable datatable (show after contacts created) -->
+    <template if:true={showTable}>
       <div class="slds-m-top_large">
-        <!-- Normal Table View -->
-        <template if:false={isEditMode}>
-          <lightning-datatable
-            key-field="Id"
-            data={createdContacts}
-            columns={columns}
-          ></lightning-datatable>
-
-          <div class="slds-m-top_medium">
-            <lightning-button
-              variant="brand"
-              label="Edit"
-              onclick={enableEditMode}
-            ></lightning-button>
-          </div>
-        </template>
-
-        <!-- Editable Mode -->
-        <template if:true={isEditMode}>
-          <template for:each={draftContacts} for:item="contact" for:index="index">
-            <div
-              key={contact.Id}
-              class="slds-m-bottom_medium slds-p-around_small slds-box slds-theme_default"
-            >
-              <div class="slds-grid slds-gutters slds-wrap">
-                <div class="slds-col slds-size_1-of-2">
-                  <lightning-input
-                    type="text"
-                    label="First Name"
-                    name="FirstName"
-                    data-index={index}
-                    value={contact.FirstName}
-                    onchange={handleDraftChange}
-                  ></lightning-input>
-                </div>
-
-                <div class="slds-col slds-size_1-of-2">
-                  <lightning-input
-                    type="text"
-                    label="Last Name"
-                    name="LastName"
-                    data-index={index}
-                    value={contact.LastName}
-                    onchange={handleDraftChange}
-                  ></lightning-input>
-                </div>
-
-                <div class="slds-col slds-size_1-of-2">
-                  <lightning-input
-                    type="email"
-                    label="Email"
-                    name="Email"
-                    data-index={index}
-                    value={contact.Email}
-                    onchange={handleDraftChange}
-                  ></lightning-input>
-                </div>
-
-                <div class="slds-col slds-size_1-of-2">
-                  <lightning-input
-                    type="phone"
-                    label="Phone"
-                    name="Phone"
-                    data-index={index}
-                    value={contact.Phone}
-                    onchange={handleDraftChange}
-                  ></lightning-input>
-                </div>
-              </div>
-            </div>
-          </template>
-
-          <div class="slds-m-top_medium">
-            <lightning-button
-              variant="brand"
-              label="Save"
-              onclick={saveEdits}
-            ></lightning-button>
-            <lightning-button
-              label="Cancel"
-              onclick={cancelEdits}
-              class="slds-m-left_small"
-            ></lightning-button>
-          </div>
-        </template>
+        <lightning-datatable
+          key-field="Id"
+          data={createdContacts}
+          columns={columns}
+          onsave={handleSave}
+          draft-values={draftValues}
+          hide-checkbox-column
+        ></lightning-datatable>
       </div>
     </template>
   </lightning-card>
-  
 </template>
