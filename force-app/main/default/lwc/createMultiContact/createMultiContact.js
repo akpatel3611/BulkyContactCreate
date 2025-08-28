@@ -56,7 +56,7 @@ export default class CreateMultiContact extends NavigationMixin(LightningElement
         if (!allValid) return;
 
         this.isLoading = true;
-        saveContacts({ contactsToInsert: this.contactList })
+        saveContacts({ contactsToInsert: this.contactList})
             .then(result => {
                 this.createdContacts = result.map(rec => ({
                     ...rec,
